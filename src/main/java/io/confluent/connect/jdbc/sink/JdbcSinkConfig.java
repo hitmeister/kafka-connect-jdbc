@@ -113,6 +113,12 @@ public class JdbcSinkConfig extends AbstractConfig {
       + " table, when possible.";
   private static final String BATCH_SIZE_DISPLAY = "Batch Size";
 
+  public static final String DELETE_ENABLED = "delete.enabled";
+  private static final String DELETE_ENABLED_DEFAULT = "false";
+  private static final String DELETE_ENABLED_DOC =
+      "Whether to treat ``null`` record values as deletes. Requires ``pk.mode`` to be ``record_key``.";
+  private static final String DELETE_ENABLED_DISPLAY = "Enable deletes";
+
   public static final String AUTO_CREATE = "auto.create";
   private static final String AUTO_CREATE_DEFAULT = "false";
   private static final String AUTO_CREATE_DOC =
@@ -211,6 +217,9 @@ public class JdbcSinkConfig extends AbstractConfig {
       .define(BATCH_SIZE, ConfigDef.Type.INT, BATCH_SIZE_DEFAULT, NON_NEGATIVE_INT_VALIDATOR,
               ConfigDef.Importance.MEDIUM, BATCH_SIZE_DOC,
               WRITES_GROUP, 2, ConfigDef.Width.SHORT, BATCH_SIZE_DISPLAY)
+      .define(DELETE_ENABLED, ConfigDef.Type.BOOLEAN, DELETE_ENABLED_DEFAULT,
+              ConfigDef.Importance.MEDIUM, DELETE_ENABLED_DOC,
+              WRITES_GROUP, 3, ConfigDef.Width.SHORT, DELETE_ENABLED_DISPLAY)
       // Data Mapping
       .define(TABLE_NAME_FORMAT, ConfigDef.Type.STRING, TABLE_NAME_FORMAT_DEFAULT,
               ConfigDef.Importance.MEDIUM, TABLE_NAME_FORMAT_DOC,
@@ -251,6 +260,7 @@ public class JdbcSinkConfig extends AbstractConfig {
   public final String tableNameFormat;
   public final String sqlDialect;
   public final int batchSize;
+  public final boolean deleteEnabled;
   public final int maxRetries;
   public final int retryBackoffMs;
   public final boolean autoCreate;
@@ -268,6 +278,7 @@ public class JdbcSinkConfig extends AbstractConfig {
     tableNameFormat = getString(TABLE_NAME_FORMAT).trim();
     sqlDialect = getString(SQL_DIALECT).trim();
     batchSize = getInt(BATCH_SIZE);
+    deleteEnabled = getBoolean(DELETE_ENABLED);
     maxRetries = getInt(MAX_RETRIES);
     retryBackoffMs = getInt(RETRY_BACKOFF_MS);
     autoCreate = getBoolean(AUTO_CREATE);
