@@ -89,8 +89,13 @@ public class DebeziumMySqlDialect extends DbDialect {
         builder.append("?, ");
         continue;
       }
-      // FIXME are there schemata whose names don't start with io.debezium??
-      builder.append(SCHEMA_NAME_CASTING_MAP.get(schemaName));
+      String placeholder = SCHEMA_NAME_CASTING_MAP.get(schemaName);
+      // Depending on the settings, debezium will use some native kafka datatypes
+      // See http://debezium.io/docs/connectors/mysql/#decimal-values
+      // and http://debezium.io/docs/connectors/mysql/#temporal-values
+      if (placeholder == null) placeholder = "?";
+
+      builder.append(placeholder);
       builder.append(", ");
     }
   }
