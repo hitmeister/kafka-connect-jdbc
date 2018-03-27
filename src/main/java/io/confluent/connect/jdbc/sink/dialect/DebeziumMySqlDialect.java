@@ -56,11 +56,18 @@ public class DebeziumMySqlDialect extends DbDialect {
   }
 
   @Override
-  protected String getSqlType(String schemaName, Map<String, String> parameters, Schema.Type type) {
+  protected String getSqlType(SinkRecordField field) {
+    String schemaName = field.schemaName();
+    Map<String, String> parameters = field.schemaParameters();
+    Schema.Type type = field.schemaType();
 
     if (schemaName != null && schemaName.startsWith("io.debezium")) {
-      // TODO maybe throw new SchemaException("There is no debezium data type mapping for schema name " + schemaName); ?
-      return SCHEMA_NAME_DATATYPE_MAP.get(schemaName);
+      String sqlType = SCHEMA_NAME_DATATYPE_MAP.get(schemaName);
+      // handle the "default" case nicely: just return text
+      if (sqlType == null) sqlType = "TEXT";
+      // special case: MySQL can't deal with TEXT in primary key fields
+      if (sqlType.equals("TEXT") && field.isPrimaryKey()) sqlType = "VARCHAR(256)";
+      return sqlType;
     }
     return new MySqlDialect().getSqlType(schemaName, parameters, type);
 
