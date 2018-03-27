@@ -164,7 +164,7 @@ public abstract class DbDialect {
   protected void writeColumnSpec(StringBuilder builder, SinkRecordField f) {
     builder.append(escaped(f.name()));
     builder.append(" ");
-    builder.append(getSqlType(f.schemaName(), f.schemaParameters(), f.schemaType()));
+    builder.append(getSqlType(f));
     if (f.defaultValue() != null) {
       builder.append(" DEFAULT ");
       formatColumnValue(
@@ -243,6 +243,25 @@ public abstract class DbDialect {
     }
   }
 
+  /**
+   * Subclasses can override this method if they need more information to decide which SQL type to create
+   *
+   * @param field the SinkRecordField for which we create/alter this column
+   * @return the name of the SQL type as used in the CREATE/ALTER TABLE statement
+   */
+  protected String getSqlType(SinkRecordField field){
+    return this.getSqlType(field.schemaName(), field.schemaParameters(), field.schemaType());
+  }
+
+  /**
+   * Subclasses can override this method if they can decide on a SQL type based on those fields.
+   *
+   * Most subclasses (including existing ones) can just use this in order to create a fitting type.
+   * @param schemaName the schema name
+   * @param parameters various parameters
+   * @param type SQL type
+   * @return the name of the SQL type as used in the CREATE/ALTER TABLE statement
+   */
   protected String getSqlType(String schemaName, Map<String, String> parameters, Schema.Type type) {
     throw new ConnectException(String.format(
         "%s (%s) type doesn't have a mapping to the SQL database column type",
