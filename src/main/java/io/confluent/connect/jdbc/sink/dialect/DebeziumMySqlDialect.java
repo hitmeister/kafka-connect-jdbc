@@ -61,16 +61,19 @@ public class DebeziumMySqlDialect extends DbDialect {
     Map<String, String> parameters = field.schemaParameters();
     Schema.Type type = field.schemaType();
 
-    if (schemaName != null && schemaName.startsWith("io.debezium")) {
-      String sqlType = SCHEMA_NAME_DATATYPE_MAP.get(schemaName);
-      // handle the "default" case nicely: just return text
-      if (sqlType == null) sqlType = "TEXT";
-      // special case: MySQL can't deal with TEXT in primary key fields
-      if (sqlType.equals("TEXT") && field.isPrimaryKey()) sqlType = "VARCHAR(256)";
-      return sqlType;
-    }
-    return new MySqlDialect().getSqlType(schemaName, parameters, type);
+    String sqlType;
 
+    if (schemaName != null && schemaName.startsWith("io.debezium")) {
+      sqlType = SCHEMA_NAME_DATATYPE_MAP.get(schemaName);
+    } else {
+      sqlType = new MySqlDialect().getSqlType(schemaName, parameters, type);
+    }
+
+    // handle the "default" case nicely: just return text
+    if (sqlType == null) sqlType = "TEXT";
+    // special case: MySQL can't deal with TEXT in primary key fields
+    if (sqlType.equals("TEXT") && field.isPrimaryKey()) sqlType = "VARCHAR(256)";
+    return sqlType;
   }
 
   private String makeUpsertPlaceholders(
