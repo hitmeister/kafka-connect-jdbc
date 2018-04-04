@@ -27,10 +27,10 @@ public class DebeziumMySqlDialect extends DbDialect {
     SCHEMA_NAME_CASTING_MAP.put("io.debezium.data.Json", "?");
     SCHEMA_NAME_CASTING_MAP.put("io.debezium.data.Enum", "?");
     SCHEMA_NAME_CASTING_MAP.put("io.debezium.data.EnumSet", "?");
-    SCHEMA_NAME_CASTING_MAP.put("io.debezium.time.Date", "MAKEDATE(1970, ?)");
-    SCHEMA_NAME_CASTING_MAP.put("io.debezium.time.Timestamp", "FROM_UNIXTIME(? / 1000)");
-    SCHEMA_NAME_CASTING_MAP.put("io.debezium.time.ZonedTimestamp", "STR_TO_DATE(?, \"%Y-%m-%dT%H:%i:%sZ\")");
-    SCHEMA_NAME_CASTING_MAP.put("io.debezium.time.MicroTimestamp", "FROM_UNIXTIME(FLOOR(? / 1000))");
+    SCHEMA_NAME_CASTING_MAP.put("io.debezium.time.Date", "DATE_ADD('1970-01-01', INTERVAL ? DAY)");
+    SCHEMA_NAME_CASTING_MAP.put("io.debezium.time.Timestamp", "DATE_ADD('1970-01-01 00:00:00',INTERVAL (? / 1000) SECOND)");
+    SCHEMA_NAME_CASTING_MAP.put("io.debezium.time.ZonedTimestamp", "TIMESTAMP(SUBSTRING(?, 1, 19))");
+    SCHEMA_NAME_CASTING_MAP.put("io.debezium.time.MicroTimestamp", "DATE_ADD('1970-01-01 00:00:00',INTERVAL FLOOR(? / 1000) SECOND)");
     SCHEMA_NAME_CASTING_MAP.put("io.debezium.time.MicroTime", "SEC_TO_TIME(FLOOR(? / 1000))");
     SCHEMA_NAME_CASTING_MAP.put("io.debezium.time.Time", "SEC_TO_TIME(?)");
     SCHEMA_NAME_CASTING_MAP.put("io.debezium.time.Year", "?");
