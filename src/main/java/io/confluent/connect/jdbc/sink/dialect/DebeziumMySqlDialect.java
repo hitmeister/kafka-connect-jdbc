@@ -72,7 +72,7 @@ public class DebeziumMySqlDialect extends DbDialect {
     // handle the "default" case nicely: just return text
     if (sqlType == null) sqlType = "TEXT";
     // special case: MySQL can't deal with TEXT in primary key fields
-    if (sqlType.equals("TEXT") && field.isPrimaryKey()) sqlType = "VARCHAR(256)";
+    if (sqlType.equals("TEXT") && field.isPrimaryKey()) sqlType = "VARCHAR(255)";
     return sqlType;
   }
 
