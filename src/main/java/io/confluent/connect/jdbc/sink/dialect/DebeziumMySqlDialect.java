@@ -5,9 +5,7 @@ import io.confluent.connect.jdbc.sink.metadata.SinkRecordField;
 import org.apache.kafka.common.protocol.types.SchemaException;
 import org.apache.kafka.connect.data.*;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static io.confluent.connect.jdbc.sink.dialect.StringBuilderUtil.copiesToBuilder;
 import static io.confluent.connect.jdbc.sink.dialect.StringBuilderUtil.joinToBuilder;
@@ -145,6 +143,41 @@ public class DebeziumMySqlDialect extends DbDialect {
         }
     );
     return builder.toString();
+  }
+
+  /**
+   * Since Debezium doesn't send default values correctly yet (see https://github.com/debezium/debezium/pull/500),
+   * all new columns must be nullable and default to null or else it will crash.
+   *
+   * This also requires the DbStructure.amendIfNecessary() to NOT crash
+   * if a new column is neither optional nor has a default value.
+   */
+  @Override
+  public List<String> getAlterTable(String tableName, Collection<SinkRecordField> fields) {
+    final boolean newlines = fields.size() > 1;
+
+    final StringBuilder builder = new StringBuilder("ALTER TABLE ");
+    builder.append(escaped(tableName));
+    builder.append(" ");
+    joinToBuilder(builder, ",", fields, new StringBuilderUtil.Transform<SinkRecordField>() {
+      @Override
+      public void apply(StringBuilder builder, SinkRecordField f) {
+        if (newlines) {
+          builder.append(System.lineSeparator());
+        }
+        builder.append("ADD ");
+        writeAlterTableColumnSpec(builder, f);
+      }
+    });
+    return Collections.singletonList(builder.toString());
+  }
+
+  private void writeAlterTableColumnSpec(StringBuilder builder, SinkRecordField f) {
+    builder.append(escaped(f.name()));
+    builder.append(" ");
+    builder.append(getSqlType(f));
+    builder.append(" NULL DEFAULT NULL");
+
   }
 
 }

@@ -127,7 +127,8 @@ public class DbStructure {
 
     for (SinkRecordField missingField: missingFields) {
       if (!missingField.isOptional() && missingField.defaultValue() == null) {
-        throw new ConnectException(String.format("Cannot ALTER %s to add missing field %s, as it is not optional and does not have a default value", tableName, missingField));
+        // still allow alter tables that have no default and are not optional because ex. MySQL 5.6 allows this
+        log.warn(String.format("Cannot safely ALTER %s to add missing field %s, as it is not optional and does not have a default value, using DEFAULT NULL instead now", tableName, missingField));
       }
     }
 
