@@ -39,6 +39,8 @@ import io.confluent.connect.jdbc.util.CachedConnectionProvider;
 import io.confluent.connect.jdbc.util.JdbcUtils;
 import io.confluent.connect.jdbc.util.Version;
 
+import static io.confluent.connect.jdbc.source.JdbcSourceConnectorConfig.NumericMapping;
+
 /**
  * JdbcSourceTask is a Kafka Connect SourceTask implementation that reads from JDBC databases and
  * generates Kafka Connect records.
@@ -148,8 +150,7 @@ public class JdbcSourceTask extends SourceTask {
       Map<String, Object> offset = offsets == null ? null : offsets.get(partition);
 
       String topicPrefix = config.getString(JdbcSourceTaskConfig.TOPIC_PREFIX_CONFIG);
-      boolean mapNumerics
-          = config.getBoolean(JdbcSourceTaskConfig.NUMERIC_PRECISION_MAPPING_CONFIG);
+      NumericMapping mapNumerics = NumericMapping.get(config);
 
       if (mode.equals(JdbcSourceTaskConfig.MODE_BULK)) {
         tableQueue.add(new BulkTableQuerier(queryMode, tableOrQuery, schemaPattern,
@@ -243,14 +244,21 @@ public class JdbcSourceTask extends SourceTask {
 
         log.debug("Returning {} records for {}", results.size(), querier.toString());
         return results;
-      } catch (SQLException e) {
-        log.error("Failed to run query for table {}: {}", querier.toString(), e);
+      } catch (SQLException sqle) {
+        log.error("Failed to run query for table {}: {}", querier.toString(), sqle);
         resetAndRequeueHead(querier);
         return null;
+      } catch (Throwable t) {
+        resetAndRequeueHead(querier);
+        throw t;
       }
     }
 
     // Only in case of shutdown
+    final TableQuerier querier = tableQueue.peek();
+    if (querier != null) {
+      resetAndRequeueHead(querier);
+    }
     return null;
   }
 

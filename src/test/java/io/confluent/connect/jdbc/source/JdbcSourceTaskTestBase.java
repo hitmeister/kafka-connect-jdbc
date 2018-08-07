@@ -23,10 +23,13 @@ import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
 import org.powermock.api.easymock.PowerMock;
+import org.powermock.api.easymock.annotation.Mock;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+
+import static io.confluent.connect.jdbc.source.JdbcSourceConnectorConfig.NumericMapping;
 
 public class JdbcSourceTaskTestBase {
 
@@ -63,15 +66,17 @@ public class JdbcSourceTaskTestBase {
   protected static final String TOPIC_PREFIX = "test-";
 
   protected Time time;
+  @Mock
   protected SourceTaskContext taskContext;
   protected JdbcSourceTask task;
   protected EmbeddedDerby db;
+  @Mock
+  private OffsetStorageReader reader;
 
   @Before
   public void setup() throws Exception {
     time = new MockTime();
     task = new JdbcSourceTask(time);
-    taskContext = PowerMock.createMock(SourceTaskContext.class);
     db = new EmbeddedDerby();
   }
 
@@ -82,12 +87,20 @@ public class JdbcSourceTaskTestBase {
   }
 
   protected Map<String, String> singleTableConfig() {
+    return singleTableConfig(false);
+  }
+
+  protected Map<String, String> singleTableConfig(boolean completeMapping) {
     Map<String, String> props = new HashMap<>();
     props.put(JdbcSourceConnectorConfig.CONNECTION_URL_CONFIG, db.getUrl());
     props.put(JdbcSourceTaskConfig.TABLES_CONFIG, SINGLE_TABLE_NAME);
     props.put(JdbcSourceConnectorConfig.MODE_CONFIG, JdbcSourceConnectorConfig.MODE_BULK);
     props.put(JdbcSourceTaskConfig.TOPIC_PREFIX_CONFIG, TOPIC_PREFIX);
-    props.put(JdbcSourceTaskConfig.NUMERIC_PRECISION_MAPPING_CONFIG, "true");
+    if (completeMapping) {
+      props.put(JdbcSourceTaskConfig.NUMERIC_MAPPING_CONFIG, NumericMapping.BEST_FIT.toString());
+    } else {
+      props.put(JdbcSourceTaskConfig.NUMERIC_PRECISION_MAPPING_CONFIG, "true");
+    }
     return props;
   }
 
@@ -101,7 +114,6 @@ public class JdbcSourceTaskTestBase {
   }
 
   protected <T> void expectInitialize(Collection<Map<String, T>> partitions, Map<Map<String, T>, Map<String, Object>> offsets) {
-    OffsetStorageReader reader = PowerMock.createMock(OffsetStorageReader.class);
     EasyMock.expect(taskContext.offsetStorageReader()).andReturn(reader);
     EasyMock.expect(reader.offsets(EasyMock.eq(partitions))).andReturn(offsets);
   }
