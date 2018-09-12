@@ -72,7 +72,7 @@ public class DebeziumMySqlDialect extends DbDialect {
     // special case: MySQL can't deal with TEXT in primary key fields, so we downcast it to varchar
     if (sqlType.equals("TEXT") && field.isPrimaryKey()) sqlType = "VARCHAR(255)";
     // special case: MySQL can't deal with DEFAULT values for TEXT fields, so we downcast it to varchar
-    if (sqlType.equals("TEXT") && field.defaultValue() != null) sqlType = "VARCHAR(255)";
+    if (sqlType.equals("TEXT") && field.defaultValue() != null) sqlType = "VARCHAR(2048)";
 
     return sqlType;
   }
@@ -181,6 +181,36 @@ public class DebeziumMySqlDialect extends DbDialect {
     builder.append(getSqlType(f));
     builder.append(" NULL DEFAULT NULL");
 
+  }
+
+  /**
+   * Since Debezium does serialize Default values in their own structure, there are cases when
+   * parsing them back to a format that MySQL understands is a bit more difficult.
+   */
+  @Override
+  protected void writeColumnSpec(StringBuilder builder, SinkRecordField f) {
+    builder.append(escaped(f.name()));
+    builder.append(" ");
+    builder.append(getSqlType(f));
+
+    if (f.schemaName() != null && f.schemaName().startsWith("io.debezium")) {
+      // in those "special case types", deserializing the default value so MySQL understands it is difficult
+      // Instead, treat the column as DEFAULT NULL column and handle the default values in the application
+      builder.append(" NULL");
+    } else if (f.defaultValue() != null) {
+      builder.append(" DEFAULT ");
+      formatColumnValue(
+          builder,
+          f.schemaName(),
+          f.schemaParameters(),
+          f.schemaType(),
+          f.defaultValue()
+      );
+    } else if (f.isOptional()) {
+      builder.append(" NULL");
+    } else {
+      builder.append(" NOT NULL");
+    }
   }
 
 }
